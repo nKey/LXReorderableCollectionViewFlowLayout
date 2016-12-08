@@ -80,6 +80,10 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
 
 @implementation LXReorderableCollectionViewFlowLayout
 
+-(void)setCoverViewEnabled:(BOOL)coverViewEnabled {
+    _coverViewEnabled = coverViewEnabled;
+}
+
 - (void)setDefaults {
     _scrollingSpeed = 300.0f;
     _scrollingTriggerEdgeInsets = UIEdgeInsetsMake(50.0f, 50.0f, 50.0f, 50.0f);
@@ -328,7 +332,7 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
                  __strong typeof(self) strongSelf = weakSelf;
                  if (strongSelf) {
                      strongSelf.currentView.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
-                     if (self.coverViewEnabled) {
+                     if (strongSelf.coverViewEnabled) {
                          strongSelf.coverView.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
                      }
                      highlightedImageView.alpha = 0.0f;
@@ -345,7 +349,7 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
                      }
                  }
                  
-                 if (self.coverViewEnabled) {
+                 if (strongSelf.coverViewEnabled) {
                      CGRect coverFrame = [strongSelf.currentView convertRect:strongSelf.currentView.bounds toView:self.containerView];
                      strongSelf.coverView.frame = coverFrame;
                      [self.containerView addSubview:strongSelf.coverView];
@@ -363,8 +367,10 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
                     [self.flowDelegate collectionView:self.collectionView layout:self willEndDraggingItemAtIndexPath:currentIndexPath];
                 }
                 
-                if (self.delegate) {
-                    [self.delegate didEndMovingCoverViewWithGestureRecognizer:gestureRecognizer];
+                if (self.coverViewEnabled) {
+                    if (self.delegate) {
+                        [self.delegate didEndMovingCoverViewWithGestureRecognizer:gestureRecognizer];
+                    }
                 }
                 
                 self.selectedItemIndexPath = nil;
@@ -384,7 +390,7 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
                      if (strongSelf) {
                          strongSelf.currentView.transform = CGAffineTransformMakeScale(1.0f, 1.0f);
                          strongSelf.currentView.center = layoutAttributes.center;
-                         if (self.coverViewEnabled) {
+                         if (strongSelf.coverViewEnabled) {
                              strongSelf.coverView.alpha = 0.0;
                          }
                      }
