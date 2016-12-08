@@ -6,13 +6,16 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "LXReordableCollectionViewFlowLayoutDelegate.h"
 
 @interface LXReorderableCollectionViewFlowLayout : UICollectionViewFlowLayout <UIGestureRecognizerDelegate>
 
 @property (assign, nonatomic) CGFloat scrollingSpeed;
 @property (assign, nonatomic) UIEdgeInsets scrollingTriggerEdgeInsets;
+@property (strong, nonatomic) id<LXReordableCollectionViewFlowLayoutDelegate> delegate;
 @property (strong, nonatomic, readonly) UILongPressGestureRecognizer *longPressGestureRecognizer;
 @property (strong, nonatomic, readonly) UIPanGestureRecognizer *panGestureRecognizer;
+@property (assign, nonatomic) BOOL coverViewEnabled;
 
 - (void)setUpGestureRecognizersOnCollectionView __attribute__((deprecated("Calls to setUpGestureRecognizersOnCollectionView method are not longer needed as setup are done automatically through KVO.")));
 
