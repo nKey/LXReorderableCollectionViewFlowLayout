@@ -12,7 +12,7 @@
 
 @property (assign, nonatomic) CGFloat scrollingSpeed;
 @property (assign, nonatomic) UIEdgeInsets scrollingTriggerEdgeInsets;
-@property (strong, nonatomic) id<LXReordableCollectionViewFlowLayoutDelegate> delegate;
+@property (strong, nonatomic) id<LXReordableCollectionViewFlowLayoutDelegate> coverViewDelegate;
 @property (strong, nonatomic, readonly) UILongPressGestureRecognizer *longPressGestureRecognizer;
 @property (strong, nonatomic, readonly) UIPanGestureRecognizer *panGestureRecognizer;
 @property (assign, nonatomic) BOOL coverViewEnabled;

@@ -74,7 +74,6 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
 @property (strong, nonatomic) CADisplayLink *displayLink;
 
 @property (assign, nonatomic, readonly) id<LXReorderableCollectionViewDataSource> dataSource;
-@property (assign, nonatomic, readonly) id<LXReorderableCollectionViewDelegateFlowLayout> flowDelegate;
 
 @end
 
@@ -141,7 +140,9 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
 
 - (void)applyLayoutAttributes:(UICollectionViewLayoutAttributes *)layoutAttributes {
     if ([layoutAttributes.indexPath isEqual:self.selectedItemIndexPath]) {
-        layoutAttributes.hidden = YES;
+        if (self.coverViewEnabled && self.coverView) {
+            layoutAttributes.hidden = YES;
+        }
     }
 }
 
@@ -291,13 +292,13 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
             
             self.selectedItemIndexPath = currentIndexPath;
             
-            if ([self.flowDelegate respondsToSelector:@selector(collectionView:layout:willBeginDraggingItemAtIndexPath:)]) {
-                [self.flowDelegate collectionView:self.collectionView layout:self willBeginDraggingItemAtIndexPath:self.selectedItemIndexPath];
+            if ([self.delegate respondsToSelector:@selector(collectionView:layout:willBeginDraggingItemAtIndexPath:)]) {
+                [self.delegate collectionView:self.collectionView layout:self willBeginDraggingItemAtIndexPath:self.selectedItemIndexPath];
             }
             
             UICollectionViewCell *collectionViewCell = [self.collectionView cellForItemAtIndexPath:self.selectedItemIndexPath];
             
-            [self.delegate didBegingMovingCoverViewRelatedToCollectionViewIndexPath:currentIndexPath];
+            [self.coverViewDelegate didBegingMovingCoverViewRelatedToCollectionViewIndexPath:currentIndexPath];
             
             self.currentView = [[UIView alloc] initWithFrame:collectionViewCell.frame];
             
@@ -344,8 +345,8 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
                  if (strongSelf) {
                      [highlightedImageView removeFromSuperview];
                      
-                     if ([strongSelf.flowDelegate respondsToSelector:@selector(collectionView:layout:didBeginDraggingItemAtIndexPath:)]) {
-                         [strongSelf.flowDelegate collectionView:strongSelf.collectionView layout:strongSelf didBeginDraggingItemAtIndexPath:strongSelf.selectedItemIndexPath];
+                     if ([strongSelf.delegate respondsToSelector:@selector(collectionView:layout:didBeginDraggingItemAtIndexPath:)]) {
+                         [strongSelf.delegate collectionView:strongSelf.collectionView layout:strongSelf didBeginDraggingItemAtIndexPath:strongSelf.selectedItemIndexPath];
                      }
                  }
                  
@@ -363,58 +364,72 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
             NSIndexPath *currentIndexPath = self.selectedItemIndexPath;
             
             if (currentIndexPath) {
-                if ([self.flowDelegate respondsToSelector:@selector(collectionView:layout:willEndDraggingItemAtIndexPath:)]) {
-                    [self.flowDelegate collectionView:self.collectionView layout:self willEndDraggingItemAtIndexPath:currentIndexPath];
-                }
+                BOOL didDropToAnotherView = NO;
                 
                 if (self.coverViewEnabled) {
                     if (self.delegate) {
-                        [self.delegate didEndMovingCoverViewWithGestureRecognizer:gestureRecognizer];
+                        didDropToAnotherView = [self.coverViewDelegate didEndMovingCoverViewWithGestureRecognizer:gestureRecognizer];
                     }
                 }
                 
-                self.selectedItemIndexPath = nil;
-                self.currentViewCenter = CGPointZero;
-                
-                UICollectionViewLayoutAttributes *layoutAttributes = [self layoutAttributesForItemAtIndexPath:currentIndexPath];
-                
-                self.longPressGestureRecognizer.enabled = NO;
-                
-                __weak typeof(self) weakSelf = self;
-                [UIView
-                 animateWithDuration:0.3
-                 delay:0.0
-                 options:UIViewAnimationOptionBeginFromCurrentState
-                 animations:^{
-                     __strong typeof(self) strongSelf = weakSelf;
-                     if (strongSelf) {
-                         strongSelf.currentView.transform = CGAffineTransformMakeScale(1.0f, 1.0f);
-                         strongSelf.currentView.center = layoutAttributes.center;
-                         if (strongSelf.coverViewEnabled) {
-                             strongSelf.coverView.alpha = 0.0;
+                if (didDropToAnotherView) {
+                    if (self.coverViewEnabled) {
+                        [self.coverView removeFromSuperview];
+                        self.coverView = nil;
+                        [self.currentView removeFromSuperview];
+                        self.currentView = nil;
+                        [self.collectionView performBatchUpdates:^{
+                            [self.collectionView deleteItemsAtIndexPaths:@[currentIndexPath]];
+                        } completion:^(BOOL finished) {
+                            
+                        }];
+                    }
+                } else {
+                    if ([self.delegate respondsToSelector:@selector(collectionView:layout:willEndDraggingItemAtIndexPath:)]) {
+                        [self.delegate collectionView:self.collectionView layout:self willEndDraggingItemAtIndexPath:currentIndexPath];
+                    }
+                    self.selectedItemIndexPath = nil;
+                    self.currentViewCenter = CGPointZero;
+                    UICollectionViewLayoutAttributes *layoutAttributes = [self layoutAttributesForItemAtIndexPath:currentIndexPath];
+                    self.longPressGestureRecognizer.enabled = NO;
+                    __weak typeof(self) weakSelf = self;
+                    [UIView
+                     animateWithDuration:0.3
+                     delay:0.0
+                     options:UIViewAnimationOptionBeginFromCurrentState
+                     animations:^{
+                         __strong typeof(self) strongSelf = weakSelf;
+                         if (strongSelf) {
+                             strongSelf.currentView.transform = CGAffineTransformMakeScale(1.0f, 1.0f);
+                             strongSelf.currentView.center = layoutAttributes.center;
+                             if (strongSelf.coverViewEnabled) {
+                                 strongSelf.coverView.transform = CGAffineTransformMakeScale(1.0f, 1.0f);
+                                 CGRect coverFrame = [self.currentView convertRect:layoutAttributes.bounds toView:self.containerView];
+                                 strongSelf.coverView.frame = coverFrame;
+                             }
                          }
                      }
-                 }
-                 completion:^(BOOL finished) {
-                     
-                     self.longPressGestureRecognizer.enabled = YES;
-                     
-                     __strong typeof(self) strongSelf = weakSelf;
-                     if (strongSelf) {
-                         [strongSelf.currentView removeFromSuperview];
-                         strongSelf.currentView = nil;
-                         [strongSelf invalidateLayout];
+                     completion:^(BOOL finished) {
                          
-                         if ([strongSelf.flowDelegate respondsToSelector:@selector(collectionView:layout:didEndDraggingItemAtIndexPath:)]) {
-                             [strongSelf.flowDelegate collectionView:strongSelf.collectionView layout:strongSelf didEndDraggingItemAtIndexPath:currentIndexPath];
-                         }
+                         self.longPressGestureRecognizer.enabled = YES;
                          
-                         if (strongSelf.coverViewEnabled) {
-                             [strongSelf.coverView removeFromSuperview];
-                             strongSelf.coverView = nil;
+                         __strong typeof(self) strongSelf = weakSelf;
+                         if (strongSelf) {
+                             [strongSelf.currentView removeFromSuperview];
+                             strongSelf.currentView = nil;
+                             [strongSelf invalidateLayout];
+                             
+                             if ([strongSelf.delegate respondsToSelector:@selector(collectionView:layout:didEndDraggingItemAtIndexPath:)]) {
+                                 [strongSelf.delegate collectionView:strongSelf.collectionView layout:strongSelf didEndDraggingItemAtIndexPath:currentIndexPath];
+                             }
+                             
+                             if (strongSelf.coverViewEnabled) {
+                                 [strongSelf.coverView removeFromSuperview];
+                                 strongSelf.coverView = nil;
+                             }
                          }
-                     }
-                 }];
+                     }];
+                }
             }
         } break;
             
@@ -432,7 +447,7 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
             if (self.coverViewEnabled) {
                 CGRect coverFrame = [self.currentView convertRect:self.currentView.bounds toView:self.containerView];
                 self.coverView.frame = coverFrame;
-                [self.delegate didMoveCoverViewWithGestureRecognizer:gestureRecognizer];
+                [self.coverViewDelegate didMoveCoverViewWithGestureRecognizer:gestureRecognizer];
             }
             
             [self invalidateLayoutIfNecessary];

@@ -4,6 +4,6 @@
 
 - (void)didBegingMovingCoverViewRelatedToCollectionViewIndexPath:(NSIndexPath *)indexPath;
 - (void)didMoveCoverViewWithGestureRecognizer:(UIPanGestureRecognizer *)recognizer;
-- (void)didEndMovingCoverViewWithGestureRecognizer:(UILongPressGestureRecognizer *)recognizer;
+- (BOOL)didEndMovingCoverViewWithGestureRecognizer:(UILongPressGestureRecognizer *)recognizer;
 
 @end
