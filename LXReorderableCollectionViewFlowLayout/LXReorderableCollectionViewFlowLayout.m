@@ -81,6 +81,8 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
 
 -(void)setCoverViewEnabled:(BOOL)coverViewEnabled {
     _coverViewEnabled = coverViewEnabled;
+    self.longPressGestureRecognizer.enabled = coverViewEnabled;
+    self.panGestureRecognizer.enabled = coverViewEnabled;
 }
 
 - (void)setDefaults {
